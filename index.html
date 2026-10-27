@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>دفتر کارگاه</title>
+<style>
+body{font-family:Tahoma,Arial;background:#f1f5f9;margin:0;color:#1e293b}
+header{background:#14532d;color:white;padding:18px;text-align:center}
+main{max-width:800px;margin:auto;padding:14px}
+.box{background:white;padding:15px;border-radius:12px;margin:12px 0;box-shadow:0 2px 7px #ddd}
+input,select,button{font:inherit;padding:10px;margin:5px 0;border-radius:7px;border:1px solid #cbd5e1;max-width:100%;box-sizing:border-box}
+input,select{width:100%}
+button{background:#166534;color:white;border:0;cursor:pointer}
+.del{background:#b91c1c}
+nav{display:flex;flex-wrap:wrap;gap:5px}
+nav button{flex:1}
+.row{border-bottom:1px solid #ddd;padding:8px 0}
+table{width:100%;border-collapse:collapse}
+td,th{border:1px solid #ddd;padding:7px;text-align:center}
+.small{font-size:13px;color:#64748b}
+</style>
+</head>
+<body>
+<header><h2>📋 دفتر ثبت کارهای کارگاه</h2><div>ثبت روزانه و گزارش ماهانه</div></header>
+<main>
+<nav>
+<button onclick="show('daily')">ثبت کار روزانه</button>
+<button onclick="show('workers')">کارگران</button>
+<button onclick="show('products')">کارها و محصولات</button>
+<button onclick="show('report')">گزارش ماهانه</button>
+</nav>
+<section id="daily" class="box">
+<h3>ثبت کار روزانه</h3>
+<label>تاریخ</label><input type="date" id="date">
+<label>انتخاب کارگر</label><select id="worker"></select>
+<div id="quantities"></div>
+<button onclick="saveDay()">ذخیره ثبت روز</button>
+<p id="msg"></p>
+</section>
+<section id="workers" class="box" hidden>
+<h3>افزودن کارگر</h3>
+<input id="newWorker" placeholder="نام کارگر">
+<button onclick="addWorker()">افزودن کارگر</button>
+<div id="workerList"></div>
+</section>
+<section id="products" class="box" hidden>
+<h3>افزودن کار یا محصول</h3>
+<input id="newProduct" placeholder="نام کار یا محصول">
+<label>واحد شمارش</label>
+<input id="unit" placeholder="مثلاً عدد، جفت، کیلو">
+<button onclick="addProduct()">افزودن محصول</button>
+<div id="productList"></div>
+</section>
+<section id="report" class="box" hidden>
+<h3>گزارش ماهانه</h3>
+<label>ماه موردنظر</label><input type="month" id="month">
+<button onclick="report()">نمایش گزارش</button>
+<div id="reportResult"></div>
+<button onclick="backup()">پشتیبان‌گیری از اطلاعات</button>
+</section>
+</main>
+<script>
+const get=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
+let workers=get('workers',[]);
+let products=get('products',[]);
+let records=get('records',[]);
+const put=()=>{localStorage.setItem('workers',JSON.stringify(workers));localStorage.setItem('products',JSON.stringify(products));localStorage.setItem('records',JSON.stringify(records));};
+function show(id){
+document.querySelectorAll('main section').forEach(s=>s.hidden=true);
+document.getElementById(id).hidden=false;
+render();
+}
+function addWorker(){
+let n=document.getElementById('newWorker').value.trim();
+if(!n)return alert('نام کارگر را وارد کن');
+if(workers.includes(n))return alert('این نام قبلاً ثبت شده');
+workers.push(n);put();document.getElementById('newWorker').value='';render();
+}
+function addProduct(){
+let n=document.getElementById('newProduct').value.trim();
+let u=document.getElementById('unit').value.trim()||'عدد';
+if(!n)return alert('نام محصول را وارد کن');
+products.push({name:n,unit:u});put();
+document.getElementById('newProduct').value='';
+document.getElementById('unit').value='';render();
+}
+function removeWorker(n){
+if(confirm('این کارگر حذف شود؟')){workers=workers.filter(x=>x!==n);put();render();}
+}
+function removeProduct(n){
+if(confirm('این محصول حذف شود؟')){products=products.filter(x=>x.name!==n);put();render();}
+}
+function render(){
+document.getElementById('worker').innerHTML=workers.map(w=>`<option>${esc(w)}</option>`).join('');
+document.getElementById('workerList').innerHTML=workers.map
