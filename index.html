@@ -1,79 +1,127 @@
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>دفتر کارگاه</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>گزارش کارگاه</title>
 <style>
-body{font-family:Tahoma,Arial;background:#f1f5f9;color:#1e293b;margin:0}
-header{background:#14532d;color:white;text-align:center;padding:20px 10px}
-main{max-width:800px;margin:auto;padding:12px}
-nav{display:flex;flex-wrap:wrap;gap:6px}
-button{font:inherit;background:#166534;color:white;border:0;border-radius:8px;padding:12px;margin:4px 0;cursor:pointer}
-nav button{flex:1;min-width:42%}
-.box{background:white;padding:16px;border-radius:12px;margin-top:14px;box-shadow:0 2px 8px #ddd}
-input,select{display:block;width:100%;box-sizing:border-box;font:inherit;padding:12px;margin:8px 0 14px;border:1px solid #cbd5e1;border-radius:8px}
-label{display:block;margin-top:10px}
+*{box-sizing:border-box}
+body{margin:0;background:#f3f6f4;color:#17211b;font:15px/1.8 Tahoma,Arial,sans-serif}
+header{background:#166534;color:white;padding:20px;text-align:center}
+nav{display:flex;gap:6px;padding:9px;background:white;overflow-x:auto;position:sticky;top:0}
+button{border:0;border-radius:8px;background:#166534;color:white;padding:10px;font:inherit;cursor:pointer}
+nav button{white-space:nowrap;background:#edf5ef;color:#14532d}
+nav button.active{background:#166534;color:white}
+main{max-width:850px;margin:16px auto;padding:0 12px}
+.box{background:white;padding:16px;margin-bottom:14px;border:1px solid #dce5de;border-radius:14px}
+h2{font-size:18px;margin:0 0 12px}
+label{display:block;margin:10px 0 4px;font-weight:bold}
+input,select{width:100%;min-height:44px;padding:10px;border:1px solid #cbd5ce;border-radius:8px;font:inherit}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.actions button{flex:1}
+.secondary{background:#e8eee9;color:#1f3b29}
+.danger{background:#fee2e2;color:#991b1b;padding:5px 10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #edf1ee}
+.row span{overflow-wrap:anywhere}
+.muted,.empty{color:#647067;font-size:13px}
+.notice{padding:10px;background:#eff6ff;border-radius:8px;color:#1e40af;font-size:13px}
+.success{color:#166534;font-weight:bold}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+th,td{padding:8px;border:1px solid #dce5de;text-align:right}
+th{background:#edf5ef}
 [hidden]{display:none!important}
-.del{background:#b91c1c}
-.row{padding:10px 0;border-bottom:1px solid #ddd}
-table{width:100%;border-collapse:collapse;margin-top:12px}
-td,th{border:1px solid #ccc;padding:7px;text-align:center}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.box{padding:13px}}
+@media print{nav,.actions,header p{display:none!important}}
 </style>
 </head>
 <body>
 <header>
-<h2>📋 دفتر ثبت کارهای کارگاه</h2>
-<p>ثبت روزانه و گزارش ماهانه</p>
+<h1>گزارش کارگاه</h1>
+<p>ثبت روزانه کار کارگران و گزارش ماهانه</p>
 </header>
-<main>
+
 <nav>
-<button onclick="show('daily')">ثبت کار روزانه</button>
-<button onclick="show('workers')">کارگران</button>
-<button onclick="show('products')">کارها و محصولات</button>
-<button onclick="show('report')">گزارش ماهانه</button>
+<button class="active" onclick="showPage('daily',this)">ثبت روزانه</button>
+<button onclick="showPage('workers',this)">کارگران</button>
+<button onclick="showPage('products',this)">کارهای هر کارگر</button>
+<button onclick="showPage('reports',this)">گزارش ماهانه</button>
+<button onclick="showPage('backup',this)">پشتیبان‌گیری</button>
 </nav>
 
+<main>
 <section id="daily" class="box">
-<h3>ثبت کار روزانه</h3>
-<label>تاریخ</label><input type="date" id="date">
-<label>انتخاب کارگر</label><select id="worker"></select>
-<div id="quantities"></div>
-<button onclick="saveDay()">ذخیره ثبت روز</button>
-<p id="msg"></p>
+<h2>ثبت کار روزانه</h2>
+<div class="grid">
+<div>
+<label for="date">تاریخ</label>
+<input id="date" type="date">
+</div>
+<div>
+<label for="worker">کارگر</label>
+<select id="worker" onchange="renderDaily()"></select>
+</div>
+</div>
+<div id="quantities"><p class="empty">ابتدا کارگر اضافه کن.</p></div>
+<div class="actions"><button onclick="saveDay()">ذخیره گزارش روز</button></div>
+<div id="msg"></div>
 </section>
 
 <section id="workers" class="box" hidden>
-<h3>افزودن کارگر</h3>
-<input id="newWorker" placeholder="نام کارگر">
-<button onclick="addWorker()">افزودن کارگر</button>
+<h2>مدیریت کارگران</h2>
+<label for="newWorker">نام کارگر</label>
+<input id="newWorker" placeholder="مثلاً علی رضایی">
+<div class="actions"><button onclick="addWorker()">افزودن کارگر</button></div>
 <div id="workerList"></div>
 </section>
 
 <section id="products" class="box" hidden>
-<h3>افزودن کار یا محصول</h3>
-<label>نام کار یا محصول</label>
+<h2>تعریف کار مخصوص هر کارگر</h2>
+<p class="muted">کارهای هر کارگر جداگانه تعریف می‌شوند.</p>
+<label for="productWorker">انتخاب کارگر</label>
+<select id="productWorker"></select>
+<label for="newProduct">نام کار یا محصول</label>
 <input id="newProduct" placeholder="مثلاً مونتاژ شیر">
-<label>واحد شمارش</label>
-<input id="unit" placeholder="مثلاً عدد، جفت، کیلو">
-<button onclick="addProduct()">افزودن محصول</button>
+<label for="unit">واحد شمارش</label>
+<input id="unit" placeholder="عدد، جفت، کیلو">
+<div class="actions"><button onclick="addProduct()">افزودن کار</button></div>
 <div id="productList"></div>
 </section>
 
-<section id="report" class="box" hidden>
-<h3>گزارش ماهانه</h3>
-<label>انتخاب ماه</label><input type="month" id="month">
+<section id="reports" class="box" hidden>
+<h2>گزارش ماهانه</h2>
+<label for="month">ماه مورد نظر</label>
+<input id="month" type="month">
+<div class="actions">
 <button onclick="report()">نمایش گزارش</button>
+<button class="secondary" onclick="printReport()">چاپ گزارش</button>
+</div>
 <div id="reportResult"></div>
-<button onclick="backup()">دریافت فایل پشتیبان</button>
+</section>
+
+<section id="backup" class="box" hidden>
+<h2>پشتیبان‌گیری</h2>
+<p class="notice">اطلاعات در همین مرورگر ذخیره می‌شود. مرتباً فایل پشتیبان بگیر.</p>
+<div class="actions"><button onclick="exportBackup()">دانلود فایل پشتیبان</button></div>
+<label for="backupFile">بازیابی از فایل پشتیبان</label>
+<input id="backupFile" type="file" accept=".json,application/json">
+<div class="actions"><button class="secondary" onclick="importBackup()">بازیابی اطلاعات</button></div>
+<p id="backupMsg" class="muted"></p>
 </section>
 </main>
 
 <script>
-function read(key){
- try{return JSON.parse(localStorage.getItem(key)||'[]')}
- catch(e){return []}
+'use strict';
+
+function read(k){
+ try{
+  let x=JSON.parse(localStorage.getItem(k)||'[]');
+  return Array.isArray(x)?x:[];
+ }catch(e){return []}
 }
+
 let workers=read('workers');
 let products=read('products');
 let records=read('records');
@@ -83,107 +131,240 @@ function put(){
  localStorage.setItem('products',JSON.stringify(products));
  localStorage.setItem('records',JSON.stringify(records));
 }
+
 function esc(s){
- return String(s).replace(/[&<>"']/g,function(c){
- return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
- });
+ return String(s??'').replace(/[&<>"']/g,c=>({
+ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+ }[c]));
 }
-function show(id){
- document.querySelectorAll('main section').forEach(function(s){s.hidden=true});
+
+function showPage(id,b){
+ document.querySelectorAll('main section').forEach(s=>s.hidden=true);
  document.getElementById(id).hidden=false;
+ document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+ b.classList.add('active');
  render();
 }
+
 function addWorker(){
- let el=document.getElementById('newWorker');
- let n=el.value.trim();
- if(!n)return alert('نام کارگر را وارد کن');
- if(workers.includes(n))return alert('این نام قبلاً ثبت شده');
- workers.push(n);put();el.value='';render();
-}
-function addProduct(){
- let el=document.getElementById('newProduct');
- let n=el.value.trim();
- let u=document.getElementById('unit').value.trim()||'عدد';
- if(!n)return alert('نام محصول را وارد کن');
- if(products.some(function(p){return p.name===n}))
- return alert('این محصول قبلاً ثبت شده');
- products.push({name:n,unit:u});put();
- el.value='';document.getElementById('unit').value='';
+ let e=document.getElementById('newWorker');
+ let n=e.value.trim();
+ if(!n)return alert('نام کارگر را وارد کن.');
+ if(workers.some(w=>w.toLowerCase()===n.toLowerCase()))
+  return alert('این نام قبلاً ثبت شده است.');
+ workers.push(n);
+ put();
+ e.value='';
  render();
 }
+
 function removeWorker(i){
- if(confirm('این کارگر حذف شود؟')){
- workers.splice(i,1);put();render();
- }
+ if(!confirm('این کارگر حذف شود؟ سوابق قبلی او حذف نمی‌شود.'))return;
+ workers.splice(i,1);
+ put();
+ render();
 }
+
+function addProduct(){
+ let w=document.getElementById('productWorker').value;
+ let n=document.getElementById('newProduct').value.trim();
+ let u=document.getElementById('unit').value.trim()||'عدد';
+
+ if(!w)return alert('ابتدا کارگر را انتخاب کن.');
+ if(!n)return alert('نام کار را وارد کن.');
+
+ if(products.some(p=>p.worker===w&&p.name.toLowerCase()===n.toLowerCase()))
+  return alert('این کار برای این کارگر قبلاً ثبت شده است.');
+
+ products.push({name:n,unit:u,worker:w});
+ put();
+
+ document.getElementById('newProduct').value='';
+ document.getElementById('unit').value='';
+ render();
+}
+
 function removeProduct(i){
- if(confirm('این محصول حذف شود؟')){
- products.splice(i,1);put();render();
- }
+ if(!confirm('این کار حذف شود؟ سوابق قبلی پاک نمی‌شود.'))return;
+ products.splice(i,1);
+ put();
+ render();
 }
+
 function render(){
- document.getElementById('worker').innerHTML=
- '<option value="">انتخاب کن</option>'+workers.map(function(w){
- return '<option value="'+esc(w)+'">'+esc(w)+'</option>';
- }).join('');
- document.getElementById('workerList').innerHTML=workers.map(function(w,i){
- return '<div class="row">'+esc(w)+' <button class="del" onclick="removeWorker('+i+')">حذف</button></div>';
- }).join('');
- document.getElementById('productList').innerHTML=products.map(function(p,i){
- return '<div class="row">'+esc(p.name)+' ('+esc(p.unit)+') <button class="del" onclick="removeProduct('+i+')">حذف</button></div>';
- }).join('');
- document.getElementById('quantities').innerHTML=products.map(function(p,i){
- return '<label>'+esc(p.name)+' ('+esc(p.unit)+')</label><input type="number" min="0" step="any" id="q'+i+'" placeholder="مقدار تولید">';
- }).join('')||'<p>ابتدا محصول اضافه کن.</p>';
+ let ds=document.getElementById('worker');
+ let ts=document.getElementById('productWorker');
+ let dw=ds.value,tw=ts.value;
+
+ let opts='<option value="">انتخاب کارگر</option>'+
+ workers.map(w=>'<option value="'+esc(w)+'">'+esc(w)+'</option>').join('');
+
+ ds.innerHTML=opts;
+ ts.innerHTML=opts;
+
+ if(workers.includes(dw))ds.value=dw;
+ if(workers.includes(tw))ts.value=tw;
+
+ document.getElementById('workerList').innerHTML=
+ workers.map((w,i)=>
+ '<div class="row"><span>'+esc(w)+'</span>'+
+ '<button class="danger" onclick="removeWorker('+i+')">حذف</button></div>'
+ ).join('')||'<p class="empty">هنوز کارگری اضافه نشده است.</p>';
+
+ document.getElementById('productList').innerHTML=
+ products.map((p,i)=>
+ '<div class="row"><span><strong>'+esc(p.worker||'بدون تخصیص')+
+ '</strong> — '+esc(p.name)+' <span class="muted">('+
+ esc(p.unit||'عدد')+')</span></span>'+
+ '<button class="danger" onclick="removeProduct('+i+')">حذف</button></div>'
+ ).join('')||'<p class="empty">هنوز کاری تعریف نشده است.</p>';
+
+ renderDaily();
 }
+
+function renderDaily(){
+ let w=document.getElementById('worker').value;
+ let ps=products.filter(p=>p.worker===w);
+
+ document.getElementById('quantities').innerHTML=!w
+ ?'<p class="empty">ابتدا کارگر را انتخاب کن.</p>'
+ :ps.map((p,i)=>
+  '<label for="q'+i+'">'+esc(p.name)+' ('+esc(p.unit||'عدد')+')</label>'+
+  '<input type="number" min="0" step="any" id="q'+i+'" inputmode="decimal" placeholder="مقدار انجام‌شده">'
+ ).join()||'<p class="empty">برای این کارگر کاری تعریف نشده؛ از بخش «کارهای هر کارگر» کار اضافه کن.</p>';
+
+ document.getElementById('msg').textContent='';
+}
+
 function saveDay(){
  let d=document.getElementById('date').value;
  let w=document.getElementById('worker').value;
- if(!d||!w)return alert('تاریخ و کارگر را انتخاب کن');
+
+ if(!d||!w)return alert('تاریخ و کارگر را انتخاب کن.');
+
+ let ps=products.filter(p=>p.worker===w);
+ if(!ps.length)return alert('برای این کارگر ابتدا کار تعریف کن.');
+
  let values={};
- products.forEach(function(p,i){
- let v=Number(document.getElementById('q'+i).value||0);
- if(v>0)values[p.name]=v;
+
+ ps.forEach((p,i)=>{
+  let e=document.getElementById('q'+i);
+  let v=e?e.value:'';
+  if(v!==''&&Number(v)>0)values[p.name]=Number(v);
  });
- if(!Object.keys(values).length)return alert('مقدار کار را وارد کن');
- let index=records.findIndex(function(r){return r.date===d&&r.worker===w});
- let item={date:d,worker:w,values:values};
- if(index>=0){
- if(!confirm('برای این کارگر در این تاریخ ثبت وجود دارد؛ جایگزین شود؟'))return;
- records[index]=item;
+
+ if(!Object.keys(values).length)
+  return alert('حداقل مقدار یکی از کارها را وارد کن.');
+
+ let ix=records.findIndex(r=>r.date===d&&r.worker===w);
+ let item={date:d,worker:w,values};
+
+ if(ix>=0){
+  if(!confirm('برای این کارگر در این تاریخ ثبت قبلی وجود دارد؛ جایگزین شود؟'))return;
+  records[ix]=item;
  }else records.push(item);
- put();document.getElementById('msg').textContent='ثبت با موفقیت ذخیره شد ✓';
- products.forEach(function(p,i){document.getElementById('q'+i).value=''});
+
+ put();
+ document.getElementById('msg').innerHTML=
+ '<p class="success">گزارش با موفقیت ذخیره شد ✓</p>';
+
+ ps.forEach((p,i)=>{
+  let e=document.getElementById('q'+i);
+  if(e)e.value='';
+ });
 }
+
 function report(){
  let m=document.getElementById('month').value;
- if(!m)return alert('ماه را انتخاب کن');
- let rs=records.filter(function(r){return r.date.startsWith(m)});
- let html='<table><tr><th>کارگر</th><th>محصول</th><th>مجموع</th></tr>';
- workers.forEach(function(w){
- products.forEach(function(p){
- let total=rs.filter(function(r){return r.worker===w}).reduce(function(sum,r){
- return sum+(Number(r.values[p.name])||0);
- },0);
- if(total)html+='<tr><td>'+esc(w)+'</td><td>'+esc(p.name)+'</td><td>'+total+' '+esc(p.unit)+'</td></tr>';
+ if(!m)return alert('ماه را انتخاب کن.');
+
+ let rs=records.filter(r=>String(r.date||'').startsWith(m));
+ let rows='',totals={};
+
+ rs.forEach(r=>{
+  Object.entries(r.values||{}).forEach(([n,v])=>{
+   let p=products.find(x=>x.worker===r.worker&&x.name===n);
+   let u=p?p.unit:'عدد';
+
+   rows+='<tr><td>'+esc(r.date)+'</td><td>'+esc(r.worker)+
+   '</td><td>'+esc(n)+'</td><td>'+esc(v)+' '+esc(u)+'</td></tr>';
+
+   let k=r.worker+'||'+n;
+   totals[k]=(totals[k]||0)+Number(v||0);
+  });
  });
- });
- html+='</table><p>تعداد ثبت‌های این ماه: '+rs.length+'</p>';
- document.getElementById('reportResult').innerHTML=html;
+
+ let h=rows
+ ?'<div class="tablewrap"><table><thead><tr><th>تاریخ</th><th>کارگر</th><th>کار</th><th>مقدار</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+ :'<p class="empty">برای این ماه گزارشی ثبت نشده است.</p>';
+
+ if(rows){
+  let sum='';
+  Object.entries(totals).forEach(([k,v])=>{
+   let a=k.split('||');
+   let p=products.find(x=>x.worker===a[0]&&x.name===a[1]);
+
+   sum+='<tr><td>'+esc(a[0])+'</td><td>'+esc(a[1])+
+   '</td><td>'+esc(v)+' '+esc(p?p.unit:'عدد')+'</td></tr>';
+  });
+
+  h+='<h2 style="margin-top:18px">جمع ماهانه هر کارگر و کار</h2>'+
+  '<div class="tablewrap"><table><thead><tr><th>کارگر</th><th>کار</th><th>مجموع</th></tr></thead><tbody>'+
+  sum+'</tbody></table></div>';
+ }
+
+ h+='<p class="muted">تعداد روزهای دارای ثبت: '+rs.length+'</p>';
+ document.getElementById('reportResult').innerHTML=h;
 }
-function backup(){
- let data=JSON.stringify({workers:workers,products:products,records:records},null,2);
+
+function printReport(){
+ if(!document.getElementById('reportResult').innerHTML.trim())report();
+ if(document.getElementById('reportResult').innerHTML.trim())window.print();
+}
+
+function exportBackup(){
+ let data={version:2,exportedAt:new Date().toISOString(),workers,products,records};
+ let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ let url=URL.createObjectURL(blob);
  let a=document.createElement('a');
- let url=URL.createObjectURL(new Blob([data],{type:'application/json'}));
- a.href=url;a.download='backup-kargah.json';a.click();
- setTimeout(function(){URL.revokeObjectURL(url)},1000);
+ a.href=url;
+ a.download='backup-kargah-'+new Date().toISOString().slice(0,10)+'.json';
+ document.body.appendChild(a);
+ a.click();
+ a.remove();
+ URL.revokeObjectURL(url);
 }
-function localDate(){
- let d=new Date();
- return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+
+function importBackup(){
+ let f=document.getElementById('backupFile').files[0];
+ if(!f)return alert('ابتدا فایل پشتیبان را انتخاب کن.');
+
+ let r=new FileReader();
+ r.onload=()=>{
+  try{
+   let d=JSON.parse(r.result);
+   if(!Array.isArray(d.workers)||!Array.isArray(d.products)||!Array.isArray(d.records))throw 0;
+   if(!confirm('اطلاعات فعلی با اطلاعات فایل جایگزین شود؟'))return;
+
+   workers=d.workers;
+   products=d.products;
+   records=d.records;
+   put();
+   render();
+   document.getElementById('backupMsg').textContent='بازیابی اطلاعات با موفقیت انجام شد.';
+  }catch(e){alert('فایل پشتیبان معتبر نیست.')}
+ };
+ r.readAsText(f);
 }
-document.getElementById('date').value=localDate();
-document.getElementById('month').value=localDate().slice(0,7);
+
+function initDates(){
+ let n=new Date();
+ let s=new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().slice(0,10);
+ document.getElementById('date').value=s;
+ document.getElementById('month').value=s.slice(0,7);
+}
+
+initDates();
 render();
 </script>
 </body>
