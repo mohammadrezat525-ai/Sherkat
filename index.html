@@ -1,9 +1,9 @@
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>گزارش کارگاه</title>
 <style>
 *{box-sizing:border-box}
@@ -47,7 +47,7 @@ th{background:#edf5ef}
 <button class="active" onclick="showPage('daily',this)">ثبت روزانه</button>
 <button onclick="showPage('workers',this)">کارگران</button>
 <button onclick="showPage('products',this)">کارهای هر کارگر</button>
-<button onclick="showPage('reports',this)">گزارش ماهانه</button>
+<button onclick="showPage('reports',this)">گزارش‌گیری</button>
 <button onclick="showPage('backup',this)">پشتیبان‌گیری</button>
 </nav>
 
@@ -56,8 +56,8 @@ th{background:#edf5ef}
 <h2>ثبت کار روزانه</h2>
 <div class="grid">
 <div>
-<label for="date">تاریخ</label>
-<input id="date" type="date">
+<label for="date">تاریخ شمسی (مثلاً ۱۴۰۵/۰۸/۰۹)</label>
+<input id="date" placeholder="۱۴۰۵/۰۸/۰۹" inputmode="numeric">
 </div>
 <div>
 <label for="worker">کارگر</label>
@@ -91,9 +91,19 @@ th{background:#edf5ef}
 </section>
 
 <section id="reports" class="box" hidden>
-<h2>گزارش ماهانه</h2>
-<label for="month">ماه مورد نظر</label>
-<input id="month" type="month">
+<h2>گزارش‌گیری</h2>
+<div class="grid">
+<div>
+<label for="month">ماه شمسی (مثلاً ۱۴۰۵/۰۸)</label>
+<input id="month" placeholder="۱۴۰۵/۰۸" inputmode="numeric">
+</div>
+<div>
+<label for="reportWorker">کارگر</label>
+<select id="reportWorker">
+<option value="__all">همه کارگران</option>
+</select>
+</div>
+</div>
 <div class="actions">
 <button onclick="report()">نمایش گزارش</button>
 <button class="secondary" onclick="printReport()">چاپ گزارش</button>
@@ -134,8 +144,111 @@ function put(){
 
 function esc(s){
  return String(s??'').replace(/[&<>"']/g,c=>({
- '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  '&':'&amp;',
+  '<':'&lt;',
+  '>':'&gt;',
+  '"':'&quot;',
+  "'":'&#39;'
  }[c]));
+}
+
+function latin(s){
+ return String(s||'')
+  .replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+  .replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+  .trim();
+}
+
+/* تبدیل تاریخ شمسی به میلادی */
+function jalaliToGregorian(jy,jm,jd){
+ jy=Number(jy);jm=Number(jm);jd=Number(jd);
+ if(jy<1200||jy>1600||jm<1||jm>12||jd<1||
+    jd>(jm<=6?31:jm<=11?30:30))return null;
+
+ jy-=979;
+ let days=365*jy+Math.floor(jy/33)*8+
+          Math.floor((jy%33+3)/4);
+
+ for(let i=1;i<jm;i++)days+=(i<=6?31:30);
+ days+=jd-1;
+
+ let g=days+79;
+ let gy=1600+400*Math.floor(g/146097);
+ g%=146097;
+ let leap=true;
+
+ if(g>=36525){
+  g--;
+  gy+=100*Math.floor(g/36524);
+  g%=36524;
+  if(g>=0)g++;
+  else leap=false;
+ }
+
+ gy+=4*Math.floor(g/1461);
+ g%=1461;
+
+ if(g>=366){
+  leap=false;
+  g--;
+  gy+=Math.floor(g/365);
+  g%=365;
+ }
+
+ let gd=g+1;
+ let ml=[0,31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
+ let gm=1;
+
+ while(gd>ml[gm]){
+  gd-=ml[gm];
+  gm++;
+ }
+
+ return String(gy).padStart(4,'0')+'-'+
+        String(gm).padStart(2,'0')+'-'+
+        String(gd).padStart(2,'0');
+}
+
+/* تبدیل تاریخ میلادی به شمسی */
+function gregorianToJalali(gy,gm,gd){
+ let gdm=[0,31,59,90,120,151,181,212,243,273,304,334];
+ let gy2=gm>2?gy+1:gy;
+
+ let days=355666+365*gy+
+  Math.floor((gy2+3)/4)-
+  Math.floor((gy2+99)/100)+
+  Math.floor((gy2+399)/400)+gd+gdm[gm-1];
+
+ let jy=-1595+33*Math.floor(days/12053);
+ days%=12053;
+
+ jy+=4*Math.floor(days/1461);
+ days%=1461;
+
+ if(days>365){
+  jy+=Math.floor((days-1)/365);
+  days=(days-1)%365;
+ }
+
+ let jm,jd;
+
+ if(days<186){
+  jm=1+Math.floor(days/31);
+  jd=1+days%31;
+ }else{
+  jm=7+Math.floor((days-186)/30);
+  jd=1+(days-186)%30;
+ }
+
+ return String(jy)+'/'+
+        String(jm).padStart(2,'0')+'/'+
+        String(jd).padStart(2,'0');
+}
+
+function jalaliMonthStart(m){
+ let a=latin(m).split(/[\/\-]/);
+ if(a.length!==2)return null;
+ return jalaliToGregorian(a[0],a[1],1);
 }
 
 function showPage(id,b){
@@ -149,9 +262,11 @@ function showPage(id,b){
 function addWorker(){
  let e=document.getElementById('newWorker');
  let n=e.value.trim();
+
  if(!n)return alert('نام کارگر را وارد کن.');
  if(workers.some(w=>w.toLowerCase()===n.toLowerCase()))
   return alert('این نام قبلاً ثبت شده است.');
+
  workers.push(n);
  put();
  e.value='';
@@ -194,30 +309,38 @@ function removeProduct(i){
 function render(){
  let ds=document.getElementById('worker');
  let ts=document.getElementById('productWorker');
- let dw=ds.value,tw=ts.value;
+ let rs=document.getElementById('reportWorker');
+
+ let dw=ds.value,tw=ts.value,rw=rs.value;
 
  let opts='<option value="">انتخاب کارگر</option>'+
- workers.map(w=>'<option value="'+esc(w)+'">'+esc(w)+'</option>').join('');
+  workers.map(w=>'<option value="'+esc(w)+'">'+esc(w)+'</option>').join('');
 
  ds.innerHTML=opts;
  ts.innerHTML=opts;
 
+ rs.innerHTML='<option value="__all">همه کارگران</option>'+
+  workers.map(w=>'<option value="'+esc(w)+'">'+esc(w)+'</option>').join('');
+
  if(workers.includes(dw))ds.value=dw;
  if(workers.includes(tw))ts.value=tw;
 
+ if(rw==='__all'||workers.includes(rw))rs.value=rw;
+
  document.getElementById('workerList').innerHTML=
- workers.map((w,i)=>
- '<div class="row"><span>'+esc(w)+'</span>'+
- '<button class="danger" onclick="removeWorker('+i+')">حذف</button></div>'
- ).join('')||'<p class="empty">هنوز کارگری اضافه نشده است.</p>';
+  workers.map((w,i)=>
+   '<div class="row"><span>'+esc(w)+'</span>'+
+   '<button class="danger" onclick="removeWorker('+i+')">حذف</button></div>'
+  ).join('')||'<p class="empty">هنوز کارگری اضافه نشده است.</p>';
 
  document.getElementById('productList').innerHTML=
- products.map((p,i)=>
- '<div class="row"><span><strong>'+esc(p.worker||'بدون تخصیص')+
- '</strong> — '+esc(p.name)+' <span class="muted">('+
- esc(p.unit||'عدد')+')</span></span>'+
- '<button class="danger" onclick="removeProduct('+i+')">حذف</button></div>'
- ).join('')||'<p class="empty">هنوز کاری تعریف نشده است.</p>';
+  products.map((p,i)=>
+   '<div class="row"><span><strong>'+
+   esc(p.worker||'بدون تخصیص')+'</strong> — '+
+   esc(p.name)+' <span class="muted">('+
+   esc(p.unit||'عدد')+')</span></span>'+
+   '<button class="danger" onclick="removeProduct('+i+')">حذف</button></div>'
+  ).join('')||'<p class="empty">هنوز کاری تعریف نشده است.</p>';
 
  renderDaily();
 }
@@ -227,22 +350,33 @@ function renderDaily(){
  let ps=products.filter(p=>p.worker===w);
 
  document.getElementById('quantities').innerHTML=!w
- ?'<p class="empty">ابتدا کارگر را انتخاب کن.</p>'
- :ps.map((p,i)=>
-  '<label for="q'+i+'">'+esc(p.name)+' ('+esc(p.unit||'عدد')+')</label>'+
-  '<input type="number" min="0" step="any" id="q'+i+'" inputmode="decimal" placeholder="مقدار انجام‌شده">'
- ).join()||'<p class="empty">برای این کارگر کاری تعریف نشده؛ از بخش «کارهای هر کارگر» کار اضافه کن.</p>';
+  ?'<p class="empty">ابتدا کارگر را انتخاب کن.</p>'
+  :ps.map((p,i)=>
+   '<label for="q'+i+'">'+esc(p.name)+' ('+
+   esc(p.unit||'عدد')+')</label>'+
+   '<input type="number" min="0" step="any" id="q'+i+
+   '" inputmode="decimal" placeholder="مقدار انجام‌شده">'
+  ).join('')||
+  '<p class="empty">برای این کارگر کاری تعریف نشده؛ از بخش «کارهای هر کارگر» کار اضافه کن.</p>';
 
  document.getElementById('msg').textContent='';
 }
 
 function saveDay(){
- let d=document.getElementById('date').value;
+ let j=latin(document.getElementById('date').value).replace(/-/g,'/');
+ let a=j.split('/');
  let w=document.getElementById('worker').value;
 
- if(!d||!w)return alert('تاریخ و کارگر را انتخاب کن.');
+ if(a.length!==3)
+  return alert('تاریخ شمسی را به شکل ۱۴۰۵/۰۸/۰۹ وارد کن.');
+
+ let d=jalaliToGregorian(a[0],a[1],a[2]);
+
+ if(!d)return alert('تاریخ شمسی معتبر نیست.');
+ if(!w)return alert('کارگر را انتخاب کن.');
 
  let ps=products.filter(p=>p.worker===w);
+
  if(!ps.length)return alert('برای این کارگر ابتدا کار تعریف کن.');
 
  let values={};
@@ -262,11 +396,14 @@ function saveDay(){
  if(ix>=0){
   if(!confirm('برای این کارگر در این تاریخ ثبت قبلی وجود دارد؛ جایگزین شود؟'))return;
   records[ix]=item;
- }else records.push(item);
+ }else{
+  records.push(item);
+ }
 
  put();
+
  document.getElementById('msg').innerHTML=
- '<p class="success">گزارش با موفقیت ذخیره شد ✓</p>';
+  '<p class="success">گزارش با موفقیت ذخیره شد ✓</p>';
 
  ps.forEach((p,i)=>{
   let e=document.getElementById('q'+i);
@@ -275,19 +412,46 @@ function saveDay(){
 }
 
 function report(){
- let m=document.getElementById('month').value;
- if(!m)return alert('ماه را انتخاب کن.');
+ let m=latin(document.getElementById('month').value).replace('-','/');
+ let start=jalaliMonthStart(m);
 
- let rs=records.filter(r=>String(r.date||'').startsWith(m));
- let rows='',totals={};
+ if(!start)return alert('ماه شمسی را به شکل ۱۴۰۵/۰۸ وارد کن.');
+
+ let a=m.split('/');
+ let nextY=Number(a[0]);
+ let nextM=Number(a[1])+1;
+
+ if(nextM===13){
+  nextM=1;
+  nextY++;
+ }
+
+ let end=jalaliToGregorian(nextY,nextM,1);
+
+ if(!end)end=String(Number(start.slice(0,4))+1)+'-01-01';
+
+ let w=document.getElementById('reportWorker').value;
+
+ let rs=records.filter(r=>
+  r.date>=start&&r.date<end&&
+  (w==='__all'||r.worker===w)
+ );
+
+ let rows='';
+ let totals={};
 
  rs.forEach(r=>{
   Object.entries(r.values||{}).forEach(([n,v])=>{
    let p=products.find(x=>x.worker===r.worker&&x.name===n);
    let u=p?p.unit:'عدد';
 
-   rows+='<tr><td>'+esc(r.date)+'</td><td>'+esc(r.worker)+
-   '</td><td>'+esc(n)+'</td><td>'+esc(v)+' '+esc(u)+'</td></tr>';
+   let dt=String(r.date||'').split('-').map(Number);
+   let jd=dt.length===3?
+    gregorianToJalali(dt[0],dt[1],dt[2]):r.date;
+
+   rows+='<tr><td>'+esc(jd)+'</td><td>'+
+    esc(r.worker)+'</td><td>'+esc(n)+'</td><td>'+
+    esc(v)+' '+esc(u)+'</td></tr>';
 
    let k=r.worker+'||'+n;
    totals[k]=(totals[k]||0)+Number(v||0);
@@ -295,25 +459,31 @@ function report(){
  });
 
  let h=rows
- ?'<div class="tablewrap"><table><thead><tr><th>تاریخ</th><th>کارگر</th><th>کار</th><th>مقدار</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
- :'<p class="empty">برای این ماه گزارشی ثبت نشده است.</p>';
+  ?'<div class="tablewrap"><table><thead><tr>'+
+   '<th>تاریخ شمسی</th><th>کارگر</th><th>کار</th><th>مقدار</th>'+
+   '</tr></thead><tbody>'+rows+'</tbody></table></div>'
+  :'<p class="empty">برای این کارگر و این ماه گزارشی ثبت نشده است.</p>';
 
  if(rows){
   let sum='';
+
   Object.entries(totals).forEach(([k,v])=>{
    let a=k.split('||');
    let p=products.find(x=>x.worker===a[0]&&x.name===a[1]);
 
-   sum+='<tr><td>'+esc(a[0])+'</td><td>'+esc(a[1])+
-   '</td><td>'+esc(v)+' '+esc(p?p.unit:'عدد')+'</td></tr>';
+   sum+='<tr><td>'+esc(a[0])+'</td><td>'+
+    esc(a[1])+'</td><td>'+esc(v)+' '+
+    esc(p?p.unit:'عدد')+'</td></tr>';
   });
 
-  h+='<h2 style="margin-top:18px">جمع ماهانه هر کارگر و کار</h2>'+
-  '<div class="tablewrap"><table><thead><tr><th>کارگر</th><th>کار</th><th>مجموع</th></tr></thead><tbody>'+
-  sum+'</tbody></table></div>';
+  h+='<h2 style="margin-top:18px">جمع ماهانه</h2>'+
+   '<div class="tablewrap"><table><thead><tr>'+
+   '<th>کارگر</th><th>کار</th><th>مجموع</th>'+
+   '</tr></thead><tbody>'+sum+'</tbody></table></div>';
  }
 
  h+='<p class="muted">تعداد روزهای دارای ثبت: '+rs.length+'</p>';
+
  document.getElementById('reportResult').innerHTML=h;
 }
 
@@ -323,12 +493,13 @@ function printReport(){
 }
 
 function exportBackup(){
- let data={version:2,exportedAt:new Date().toISOString(),workers,products,records};
+ let data={version:3,exportedAt:new Date().toISOString(),workers,products,records};
  let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
  let url=URL.createObjectURL(blob);
  let a=document.createElement('a');
+
  a.href=url;
- a.download='backup-kargah-'+new Date().toISOString().slice(0,10)+'.json';
+ a.download='backup-kargah.json';
  document.body.appendChild(a);
  a.click();
  a.remove();
@@ -340,28 +511,42 @@ function importBackup(){
  if(!f)return alert('ابتدا فایل پشتیبان را انتخاب کن.');
 
  let r=new FileReader();
+
  r.onload=()=>{
   try{
    let d=JSON.parse(r.result);
-   if(!Array.isArray(d.workers)||!Array.isArray(d.products)||!Array.isArray(d.records))throw 0;
+
+   if(!Array.isArray(d.workers)||
+      !Array.isArray(d.products)||
+      !Array.isArray(d.records))throw 0;
+
    if(!confirm('اطلاعات فعلی با اطلاعات فایل جایگزین شود؟'))return;
 
    workers=d.workers;
    products=d.products;
    records=d.records;
+
    put();
    render();
-   document.getElementById('backupMsg').textContent='بازیابی اطلاعات با موفقیت انجام شد.';
-  }catch(e){alert('فایل پشتیبان معتبر نیست.')}
+
+   document.getElementById('backupMsg').textContent=
+    'بازیابی اطلاعات با موفقیت انجام شد.';
+  }catch(e){
+   alert('فایل پشتیبان معتبر نیست.');
+  }
  };
+
  r.readAsText(f);
 }
 
 function initDates(){
- let n=new Date();
- let s=new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().slice(0,10);
- document.getElementById('date').value=s;
- document.getElementById('month').value=s.slice(0,7);
+ let now=new Date();
+ let today=gregorianToJalali(
+  now.getFullYear(),now.getMonth()+1,now.getDate()
+ );
+
+ document.getElementById('date').value=today;
+ document.getElementById('month').value=today.slice(0,7);
 }
 
 initDates();
