@@ -2,27 +2,30 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>دفتر کارگاه</title>
 <style>
-body{font-family:Tahoma,Arial;background:#f1f5f9;margin:0;color:#1e293b}
-header{background:#14532d;color:white;padding:18px;text-align:center}
-main{max-width:800px;margin:auto;padding:14px}
-.box{background:white;padding:15px;border-radius:12px;margin:12px 0;box-shadow:0 2px 7px #ddd}
-input,select,button{font:inherit;padding:10px;margin:5px 0;border-radius:7px;border:1px solid #cbd5e1;max-width:100%;box-sizing:border-box}
-input,select{width:100%}
-button{background:#166534;color:white;border:0;cursor:pointer}
+body{font-family:Tahoma,Arial;background:#f1f5f9;color:#1e293b;margin:0}
+header{background:#14532d;color:white;text-align:center;padding:20px 10px}
+main{max-width:800px;margin:auto;padding:12px}
+nav{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;background:#166534;color:white;border:0;border-radius:8px;padding:12px;margin:4px 0;cursor:pointer}
+nav button{flex:1;min-width:42%}
+.box{background:white;padding:16px;border-radius:12px;margin-top:14px;box-shadow:0 2px 8px #ddd}
+input,select{display:block;width:100%;box-sizing:border-box;font:inherit;padding:12px;margin:8px 0 14px;border:1px solid #cbd5e1;border-radius:8px}
+label{display:block;margin-top:10px}
+[hidden]{display:none!important}
 .del{background:#b91c1c}
-nav{display:flex;flex-wrap:wrap;gap:5px}
-nav button{flex:1}
-.row{border-bottom:1px solid #ddd;padding:8px 0}
-table{width:100%;border-collapse:collapse}
-td,th{border:1px solid #ddd;padding:7px;text-align:center}
-.small{font-size:13px;color:#64748b}
+.row{padding:10px 0;border-bottom:1px solid #ddd}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+td,th{border:1px solid #ccc;padding:7px;text-align:center}
 </style>
 </head>
 <body>
-<header><h2>📋 دفتر ثبت کارهای کارگاه</h2><div>ثبت روزانه و گزارش ماهانه</div></header>
+<header>
+<h2>📋 دفتر ثبت کارهای کارگاه</h2>
+<p>ثبت روزانه و گزارش ماهانه</p>
+</header>
 <main>
 <nav>
 <button onclick="show('daily')">ثبت کار روزانه</button>
@@ -30,6 +33,7 @@ td,th{border:1px solid #ddd;padding:7px;text-align:center}
 <button onclick="show('products')">کارها و محصولات</button>
 <button onclick="show('report')">گزارش ماهانه</button>
 </nav>
+
 <section id="daily" class="box">
 <h3>ثبت کار روزانه</h3>
 <label>تاریخ</label><input type="date" id="date">
@@ -38,59 +42,149 @@ td,th{border:1px solid #ddd;padding:7px;text-align:center}
 <button onclick="saveDay()">ذخیره ثبت روز</button>
 <p id="msg"></p>
 </section>
+
 <section id="workers" class="box" hidden>
 <h3>افزودن کارگر</h3>
 <input id="newWorker" placeholder="نام کارگر">
 <button onclick="addWorker()">افزودن کارگر</button>
 <div id="workerList"></div>
 </section>
+
 <section id="products" class="box" hidden>
 <h3>افزودن کار یا محصول</h3>
-<input id="newProduct" placeholder="نام کار یا محصول">
+<label>نام کار یا محصول</label>
+<input id="newProduct" placeholder="مثلاً مونتاژ شیر">
 <label>واحد شمارش</label>
 <input id="unit" placeholder="مثلاً عدد، جفت، کیلو">
 <button onclick="addProduct()">افزودن محصول</button>
 <div id="productList"></div>
 </section>
+
 <section id="report" class="box" hidden>
 <h3>گزارش ماهانه</h3>
-<label>ماه موردنظر</label><input type="month" id="month">
+<label>انتخاب ماه</label><input type="month" id="month">
 <button onclick="report()">نمایش گزارش</button>
 <div id="reportResult"></div>
-<button onclick="backup()">پشتیبان‌گیری از اطلاعات</button>
+<button onclick="backup()">دریافت فایل پشتیبان</button>
 </section>
 </main>
+
 <script>
-const get=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
-let workers=get('workers',[]);
-let products=get('products',[]);
-let records=get('records',[]);
-const put=()=>{localStorage.setItem('workers',JSON.stringify(workers));localStorage.setItem('products',JSON.stringify(products));localStorage.setItem('records',JSON.stringify(records));};
+function read(key){
+ try{return JSON.parse(localStorage.getItem(key)||'[]')}
+ catch(e){return []}
+}
+let workers=read('workers');
+let products=read('products');
+let records=read('records');
+
+function put(){
+ localStorage.setItem('workers',JSON.stringify(workers));
+ localStorage.setItem('products',JSON.stringify(products));
+ localStorage.setItem('records',JSON.stringify(records));
+}
+function esc(s){
+ return String(s).replace(/[&<>"']/g,function(c){
+ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+ });
+}
 function show(id){
-document.querySelectorAll('main section').forEach(s=>s.hidden=true);
-document.getElementById(id).hidden=false;
-render();
+ document.querySelectorAll('main section').forEach(function(s){s.hidden=true});
+ document.getElementById(id).hidden=false;
+ render();
 }
 function addWorker(){
-let n=document.getElementById('newWorker').value.trim();
-if(!n)return alert('نام کارگر را وارد کن');
-if(workers.includes(n))return alert('این نام قبلاً ثبت شده');
-workers.push(n);put();document.getElementById('newWorker').value='';render();
+ let el=document.getElementById('newWorker');
+ let n=el.value.trim();
+ if(!n)return alert('نام کارگر را وارد کن');
+ if(workers.includes(n))return alert('این نام قبلاً ثبت شده');
+ workers.push(n);put();el.value='';render();
 }
 function addProduct(){
-let n=document.getElementById('newProduct').value.trim();
-let u=document.getElementById('unit').value.trim()||'عدد';
-if(!n)return alert('نام محصول را وارد کن');
-products.push({name:n,unit:u});put();
-document.getElementById('newProduct').value='';
-document.getElementById('unit').value='';render();
+ let el=document.getElementById('newProduct');
+ let n=el.value.trim();
+ let u=document.getElementById('unit').value.trim()||'عدد';
+ if(!n)return alert('نام محصول را وارد کن');
+ if(products.some(function(p){return p.name===n}))
+ return alert('این محصول قبلاً ثبت شده');
+ products.push({name:n,unit:u});put();
+ el.value='';document.getElementById('unit').value='';
+ render();
 }
-function removeWorker(n){
-if(confirm('این کارگر حذف شود؟')){workers=workers.filter(x=>x!==n);put();render();}
+function removeWorker(i){
+ if(confirm('این کارگر حذف شود؟')){
+ workers.splice(i,1);put();render();
+ }
 }
-function removeProduct(n){
-if(confirm('این محصول حذف شود؟')){products=products.filter(x=>x.name!==n);put();render();}
+function removeProduct(i){
+ if(confirm('این محصول حذف شود؟')){
+ products.splice(i,1);put();render();
+ }
 }
 function render(){
-document.getElementById('worker').innerHTML=workers.map(w=>`<option>${esc(w)}</option>`).join('');
-document.getElementById('workerList').innerHTML=workers.map
+ document.getElementById('worker').innerHTML=
+ '<option value="">انتخاب کن</option>'+workers.map(function(w){
+ return '<option value="'+esc(w)+'">'+esc(w)+'</option>';
+ }).join('');
+ document.getElementById('workerList').innerHTML=workers.map(function(w,i){
+ return '<div class="row">'+esc(w)+' <button class="del" onclick="removeWorker('+i+')">حذف</button></div>';
+ }).join('');
+ document.getElementById('productList').innerHTML=products.map(function(p,i){
+ return '<div class="row">'+esc(p.name)+' ('+esc(p.unit)+') <button class="del" onclick="removeProduct('+i+')">حذف</button></div>';
+ }).join('');
+ document.getElementById('quantities').innerHTML=products.map(function(p,i){
+ return '<label>'+esc(p.name)+' ('+esc(p.unit)+')</label><input type="number" min="0" step="any" id="q'+i+'" placeholder="مقدار تولید">';
+ }).join('')||'<p>ابتدا محصول اضافه کن.</p>';
+}
+function saveDay(){
+ let d=document.getElementById('date').value;
+ let w=document.getElementById('worker').value;
+ if(!d||!w)return alert('تاریخ و کارگر را انتخاب کن');
+ let values={};
+ products.forEach(function(p,i){
+ let v=Number(document.getElementById('q'+i).value||0);
+ if(v>0)values[p.name]=v;
+ });
+ if(!Object.keys(values).length)return alert('مقدار کار را وارد کن');
+ let index=records.findIndex(function(r){return r.date===d&&r.worker===w});
+ let item={date:d,worker:w,values:values};
+ if(index>=0){
+ if(!confirm('برای این کارگر در این تاریخ ثبت وجود دارد؛ جایگزین شود؟'))return;
+ records[index]=item;
+ }else records.push(item);
+ put();document.getElementById('msg').textContent='ثبت با موفقیت ذخیره شد ✓';
+ products.forEach(function(p,i){document.getElementById('q'+i).value=''});
+}
+function report(){
+ let m=document.getElementById('month').value;
+ if(!m)return alert('ماه را انتخاب کن');
+ let rs=records.filter(function(r){return r.date.startsWith(m)});
+ let html='<table><tr><th>کارگر</th><th>محصول</th><th>مجموع</th></tr>';
+ workers.forEach(function(w){
+ products.forEach(function(p){
+ let total=rs.filter(function(r){return r.worker===w}).reduce(function(sum,r){
+ return sum+(Number(r.values[p.name])||0);
+ },0);
+ if(total)html+='<tr><td>'+esc(w)+'</td><td>'+esc(p.name)+'</td><td>'+total+' '+esc(p.unit)+'</td></tr>';
+ });
+ });
+ html+='</table><p>تعداد ثبت‌های این ماه: '+rs.length+'</p>';
+ document.getElementById('reportResult').innerHTML=html;
+}
+function backup(){
+ let data=JSON.stringify({workers:workers,products:products,records:records},null,2);
+ let a=document.createElement('a');
+ let url=URL.createObjectURL(new Blob([data],{type:'application/json'}));
+ a.href=url;a.download='backup-kargah.json';a.click();
+ setTimeout(function(){URL.revokeObjectURL(url)},1000);
+}
+function localDate(){
+ let d=new Date();
+ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+document.getElementById('date').value=localDate();
+document.getElementById('month').value=localDate().slice(0,7);
+render();
+</script>
+</body>
+</html>
